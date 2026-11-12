@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GMS - KIỂM SOÁT CỔNG BHX</title>
+  <script defer src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    :root { --g:#008b4b; --y:#ffde00; --bg:#f4f7f6; --r:#cc0000; --b:#1c4587; --o:#ff9800; }
+    * { box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; background: var(--bg); margin: 0; color:#222; }
+    .header { background: var(--g); color: #fff; padding: 14px; text-align: center; border-bottom: 4px solid var(--y); }
+    .header h3 { margin: 0; font-size: 18px; }
+    .header p { margin: 5px 0 0; font-size: 13px; font-weight: bold; }
+    .container { max-width: 560px; margin: 12px auto; padding: 0 10px; }
+    .card { background: #fff; border-radius: 8px; padding: 16px; box-shadow: 0 2px 10px rgba(0,0,0,.08); margin-bottom: 14px; }
+    .form-group { margin-bottom: 13px; }
+    label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 14px; }
+    label .req { color: red; }
+    input, select { width: 100%; padding: 10px; border: 1px solid #bbb; border-radius: 5px; font-size: 15px; background:#fff; }
+    input[readonly] { background: #eee; }
+    .help { font-size: 12px; color: #666; margin-top: 3px; font-style: italic; }
+    .btn { width: 100%; padding: 12px; border: none; border-radius: 6px; font-size: 15px; font-weight: bold; cursor: pointer; margin-top: 8px; }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-g { background: var(--g); color: #fff; } .btn-r { background: var(--r); color: #fff; }
+    .btn-y { background: var(--y); color: #333; } .btn-d { background: #333; color: #fff; }
+    .btn-b { background: var(--b); color: #fff; } .btn-o { background: var(--o); color: #fff; }
+    .btn-sm { width: auto; padding: 7px 10px; font-size: 12px; margin: 0; }
+    .row { display: flex; gap: 10px; } .row > * { flex: 1; }
+    .menu { display: flex; gap: 8px; margin-bottom: 14px; }
+    .menu div { flex: 1; padding: 13px 6px; text-align: center; font-weight: bold; border-radius: 8px; cursor: pointer; color: #fff; font-size: 14px; }
+    .hidden { display: none !important; }
+    .po-group { display: flex; margin-bottom: 8px; }
+    .po-prefix { background: #eee; padding: 10px; border: 1px solid #bbb; border-right: none; border-radius: 5px 0 0 5px; font-weight: bold; color: #555; }
+    .po-group input { border-radius: 0 5px 5px 0; }
+    .scanner { border: 3px dashed #333; padding: 8px; border-radius: 8px; margin: 8px 0; background: #fff; }
+    .alert { background: #ffe6e6; border: 2px solid var(--r); color: var(--r); padding: 10px; border-radius: 6px; font-weight: bold; font-size: 13px; margin-top: 8px; white-space: pre-line; }
+    .ok { background: #e6f4ec; border: 2px solid var(--g); color: #05603a; padding: 10px; border-radius: 6px; font-weight: bold; font-size: 13px; margin-top: 8px; white-space: pre-line; }
+    .subbox { background: #fff8e1; border: 2px dashed var(--o); padding: 12px; border-radius: 6px; margin-top: 10px; }
+    .step { background:#f9f9f9; padding:13px; border-radius:6px; border:1px solid #ddd; margin-bottom:13px; }
+    h4 { margin: 6px 0 10px; color: var(--g); }
+    .stt { background: var(--y); border: 3px solid var(--g); border-radius: 10px; padding: 10px; margin: 10px 0; font-size: 18px; font-weight: 900; text-align: center; }
+    .stt span { display: block; font-size: 34px; color: var(--r); }
+    #qrBox { display: flex; justify-content: center; margin: 10px 0; }
+    #qrBox img, #qrBox canvas { border: 4px solid var(--g); border-radius: 10px; padding: 8px; background: #fff; }
+    .info-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    .info-table td { padding: 5px 4px; border-bottom: 1px solid #eee; vertical-align: top; }
+    .info-table td:first-child { font-weight: bold; width: 38%; color: #555; }
+    .plate { background: var(--y); padding: 2px 6px; font-weight: bold; border-radius: 3px; }
+    .badge { display: inline-block; padding: 3px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; color: #fff; }
+    .b-wait { background: #3d85c6; } .b-in { background: #cc4125; } .b-out { background: #777; } .b-pend { background: #e69138; }
+    .tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+    .tabs div { flex: 1; text-align: center; padding: 10px; border-radius: 6px; background: #ddd; font-weight: bold; cursor: pointer; font-size: 14px; }
+    .tabs div.active { background: var(--r); color: #fff; }
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+    .stat { background: #fff; border-radius: 8px; padding: 10px 6px; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+    .stat b { display: block; font-size: 22px; } .stat small { font-size: 11px; color: #666; font-weight: bold; }
+    .list-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 4px; border-bottom: 1px solid #eee; font-size: 13px; }
+    .list-item .meta { color: #666; font-size: 12px; }
+    .long { color: var(--r); font-weight: bold; }
+    .ticket-row { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid #eee; font-size:13px; }
+    .muted { color:#777; font-size:12px; }
+    .footer { text-align:center; font-size:11px; color:#999; margin:10px 0 20px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h3>HỆ THỐNG QUẢN LÝ CỔNG</h3>
+    <p id="clusterTitle">ĐANG TẢI CẤU HÌNH KHO...</p>
+  </div>
+
+  <div class="container">
+    <div class="menu" id="mainMenu">
+      <div style="background:var(--g)" onclick="showPortal('guest')">🚚 TÀI XẾ / KHÁCH</div>
+      <div style="background:var(--b)" onclick="showPortal('myTicket')">🎫 XEM LẠI VÉ</div>
+      <div style="background:var(--r)" onclick="showPortal('security')">🔒 AN NINH</div>
+    </div>
+
+    <!-- ===================== 1. TÀI XẾ / KHÁCH ĐĂNG KÝ ===================== -->
+    <div class="card" id="guestPortal">
+      <form id="guestForm" onsubmit="event.preventDefault(); submitGuest();">
+        <div class="form-group">
+          <label>Đối tượng ra vào: <span class="req">*</span></label>
+          <select id="phanLoai" onchange="onPhanLoai()">
+            <option value="">-- Chọn đối tượng --</option>
+            <option value="Đối tác ngoài">Nhà Cung Cấp / Nhà Vận Chuyển / Đối Tác</option>
+            <option value="Nội bộ BHX">NỘI BỘ CÔNG TY</option>
+          </select>
+        </div>
+
+        <div id="commonSec" class="hidden">
+          <div class="form-group">
+            <label>Kho đích đến: <span class="req">*</span></label>
+            <select id="khoDen" onchange="onKhoChange()"><option value="">-- Chọn kho --</option></select>
+          </div>
+
+          <div class="form-group hidden" id="grpUserBHX">
+            <label>Mã User ID Nhân viên: <span class="req">*</span></label>
+            <input type="number" id="userBHX" placeholder="VD: 69587" inputmode="numeric">
+          </div>
+
+          <div class="form-group">
+            <label id="lblHoTen">Họ và Tên: <span class="req">*</span></label>
+            <input type="text" id="hoTen" placeholder="VD: Nguyễn Văn A" maxlength="60" onblur="fmtName(this)">
+            <div class="help">Ghi đầy đủ Họ và Tên thật (ít nhất 2 chữ, không viết tắt).</div>
+          </div>
+          <div class="form-group">
+            <label id="lblSDT">Số điện thoại: <span class="req">*</span></label>
+            <input type="tel" id="soDienThoai" placeholder="VD: 0939882232" maxlength="10" inputmode="numeric">
+          </div>
+          <div class="row">
+            <div class="form-group">
+              <label>Loại xe: <span class="req">*</span></label>
+              <select id="loaiXe" onchange="onLoaiXe()">
+                <option value="Xe Tải">Xe Tải</option><option value="Xe Máy">Xe Máy</option><option value="Xe Ô tô con">Xe Ô tô con</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label id="lblTrongTai">Trọng tải: <span class="req">*</span></label>
+              <select id="trongTai"></select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label id="lblBienSo">Biển số xe: <span class="req">*</span></label>
+            <input type="text" id="bienSoXe" placeholder="VD: 51D-12345" style="text-transform:uppercase" onblur="fmtPlate(this)">
+            <div class="help">Nhập đúng biển số thật. Hệ thống tự chặn biển số ảo.</div>
+          </div>
+
+          <!-- ĐỐI TÁC NGOÀI -->
+          <div id="partnerSec" class="step hidden">
+            <div class="form-group">
+              <label>Mục đích đến kho: <span class="req">*</span></label>
+              <select id="mucDichNgoai" onchange="onMucDich()">
+                <option value="">-- Chọn mục đích --</option>
+                <option value="Giao hàng (Có PO)">Giao hàng nhập kho (Có mã PO)</option>
+                <option value="NVC nhận hàng giao Siêu thị">NVC nhận hàng giao Siêu thị</option>
+                <option value="Thu hồi hàng hóa">Thu hồi hàng hóa</option>
+                <option value="Thu mua thanh lý">Thu mua hàng thanh lý</option>
+                <option value="Lấy công nợ rổ">Lấy công nợ rổ</option>
+                <option value="Giao hàng KKD">Giao hàng KKD / Phi thương mại</option>
+              </select>
+            </div>
+
+            <div id="poSec" class="hidden">
+              <div class="form-group">
+                <label>Số lượng xe chở PO này: <span class="req">*</span></label>
+                <select id="cheDoXe" onchange="onCheDoXe()">
+                  <option value="1_XE">Đi 1 xe bình thường</option>
+                  <option value="NHIEU_XE_2">1 PO đi 2 xe (Tôi là Xe 1 - khai báo thêm Xe 2)</option>
+                  <option value="NHIEU_XE_3">1 PO đi 3 xe (Tôi là Xe 1 - khai báo thêm Xe 2, 3)</option>
+                  <option value="NHIEU_XE_4">1 PO đi 4 xe (Tôi là Xe 1 - khai báo thêm Xe 2, 3, 4)</option>
+                  <option value="XE_PHU_2">1 PO đi nhiều xe (Tôi là Xe thứ 2 đến kho)</option>
+                  <option value="XE_PHU_3">1 PO đi nhiều xe (Tôi là Xe thứ 3 đến kho)</option>
+                  <option value="XE_PHU_4">1 PO đi nhiều xe (Tôi là Xe thứ 4 đến kho)</option>
+                </select>
+              </div>
+              <div id="subTrucks"></div>
+
+              <h4>BƯỚC 1: KHAI BÁO & XÁC THỰC MÃ PO</h4>
+              <div class="form-group">
+                <label>Số lượng mã PO: <span class="req">*</span></label>
+                <select id="soLuongPO" onchange="renderPOInputs()">
+                  <option value="1">1 Mã PO</option><option value="2">2 Mã PO</option>
+                  <option value="3">3 Mã PO</option><option value="4">4 Mã PO</option>
+                </select>
+              </div>
+              <button type="button" class="btn btn-d" onclick="openScanner('poScanBox','poReader',onPoScanned)">📷 BẬT CAMERA QUÉT MÃ PO</button>
+              <label class="btn btn-y btn-sm" style="display:block;text-align:center;margin-top:6px">📸 Chụp ảnh mã PO (dự phòng)
+                <input type="file" accept="image/*" capture="environment" style="display:none" onchange="scanFromPhoto(this,'poReader',onPoScanned)">
+              </label>
+              <div id="poScanBox" class="scanner hidden">
+                <p style="text-align:center;font-weight:bold;color:var(--g);margin:4px">ĐƯA MÃ VẠCH / QR TRÊN TỜ PO VÀO KHUNG</p>
+                <div id="poReader"></div>
+                <div class="row">
+                  <button type="button" class="btn btn-y" onclick="switchCamera()">🔄 ĐỔI CAMERA</button>
+                  <button type="button" class="btn btn-r" onclick="closeScanner()">❌ TẮT</button>
+                </div>
+              </div>
+              <div id="poInputs" style="margin-top:10px"></div>
+              <button type="button" class="btn btn-y" id="btnCheckPO" onclick="checkPO()">🔍 KIỂM TRA & XÁC THỰC PO</button>
+              <div id="poMsg"></div>
+
+              <div id="bookingSec" class="hidden" style="margin-top:14px;padding-top:10px;border-top:2px solid #ccc">
+                <h4>BƯỚC 2: CHỌN LOẠI BOOKING & KHUNG GIỜ</h4>
+                <div class="form-group">
+                  <label>BOOKING / XẾP TÀI / KHÁC: <span class="req">*</span></label>
+                  <select id="loaiBooking" onchange="onBooking()"></select>
+                  <div class="help" id="bookingHelp"></div>
+                </div>
+                <div id="timeSec" class="hidden" style="background:#eef7f2;padding:10px;border-radius:6px;border:1px solid var(--g)">
+                  <label>Khung giờ Booking: <span class="req">*</span></label>
+                  <div class="row">
+                    <div><span class="muted">Từ giờ</span><select id="gioBatDau" onchange="checkLateLocal()"></select></div>
+                    <div><span class="muted">Đến giờ</span><select id="gioKetThuc" onchange="checkLateLocal()"></select></div>
+                  </div>
+                  <div id="lateMsg"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group hidden" id="grpTenDonVi" style="margin-top:12px">
+              <label id="lblTenDonVi">Tên Nhà Cung Cấp / Đơn vị: <span class="req">*</span></label>
+              <input type="text" id="tenDonVi" maxlength="80">
+              <div class="help" id="helpTenDonVi"></div>
+            </div>
+            <div class="form-group hidden" id="grpNganhHang">
+              <label>Ngành Hàng / Nhóm Hàng: <span class="req">*</span></label>
+              <select id="loaiHangHoa"><option value="">-- Chọn kho trước --</option></select>
+            </div>
+          </div>
+
+          <!-- NỘI BỘ -->
+          <div id="internalSec" class="step hidden">
+            <div class="form-group">
+              <label>Khối / Bộ phận công tác: <span class="req">*</span></label>
+              <select id="boPhanBHX">
+                <option value="">-- Chọn bộ phận --</option>
+                <option>IT</option><option>Xây dựng bảo trì</option><option>Khối Logistics</option>
+                <option>Khối Kho vận</option><option>Khối HCNS</option><option>Kho khác qua hỗ trợ</option><option>Ngành hàng / QA</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Chức vụ: <span class="req">*</span></label>
+              <select id="chucVuBHX">
+                <option value="">-- Chọn chức vụ --</option>
+                <option>Giám Đốc khối</option><option>Giám đốc vùng</option><option>Trưởng phòng</option>
+                <option>Trưởng kho</option><option>Phó kho</option><option>Chuyên viên</option><option>Nhân viên</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Mục đích công tác: <span class="req">*</span></label>
+              <input type="text" id="mucDichNoiBo" maxlength="150" placeholder="VD: Lấy chứng từ / Họp / Sửa máy lạnh...">
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-g" id="btnSubmit" disabled>GỬI ĐĂNG KÝ & LẤY MÃ QR VÀO CỔNG</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- ===================== MÀN HÌNH VÉ QR ===================== -->
+    <div class="card hidden" id="qrScreen" style="text-align:center">
+      <h3 style="color:var(--g);margin-top:0">ĐĂNG KÝ THÀNH CÔNG</h3>
+      <div id="qrStt" class="stt hidden"></div>
+      <div id="qrWarn"></div>
+      <div id="qrMulti" class="subbox hidden" style="text-align:left;font-size:13px;font-weight:bold;color:#b35900"></div>
+      <p style="font-weight:bold;color:var(--r)">ĐƯA MÃ NÀY CHO BẢO VỆ QUÉT ĐỂ VÀO CỔNG</p>
+      <div id="qrBox"></div>
+      <div id="qrInfo" class="muted"></div>
+      <p class="muted" style="font-weight:bold">⚠️ Mẹo: Chụp màn hình lại phòng khi điện thoại hết pin.<br>Có thể mở lại vé bằng nút 🎫 XEM LẠI VÉ.</p>
+      <button class="btn btn-b" onclick="refreshMyTicketStatus(currentTicketId)">🔄 XEM TRẠNG THÁI & SỐ XE CHỜ TRƯỚC</button>
+      <div id="qrStatus"></div>
+      <button class="btn btn-d" onclick="location.reload()">↩ ĐĂNG KÝ MỚI</button>
+    </div>
+
+    <!-- ===================== 2. XEM LẠI VÉ ===================== -->
+    <div class="card hidden" id="myTicketPortal">
+      <h3 style="color:var(--b);margin-top:0">🎫 VÉ ĐÃ ĐĂNG KÝ TRÊN MÁY NÀY</h3>
+      <div id="myTicketList" class="muted">Chưa có vé nào.</div>
+    </div>
+
+    <!-- ===================== 3. AN NINH ===================== -->
+    <div class="card hidden" id="securityPortal">
+      <div id="secLogin">
+        <h3 style="text-align:center;color:var(--r);margin-top:0">ĐĂNG NHẬP AN NINH</h3>
+        <div class="form-group">
+          <label>Mã User ID:</label>
+          <input type="number" id="secUser" inputmode="numeric" placeholder="Nhập User ID được phân quyền">
+        </div>
+        <div class="form-group">
+          <label>Mật khẩu:</label>
+          <input type="password" id="secPass" placeholder="Mật khẩu riêng của bạn">
+        </div>
+        <button class="btn btn-r" id="btnLogin" onclick="loginSecurity()">ĐĂNG NHẬP</button>
+        <div id="loginMsg"></div>
+      </div>
+
+      <div id="secMain" class="hidden">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <b style="color:var(--g)" id="secName"></b>
+          <button class="btn btn-sm" style="background:#ddd" onclick="logoutSecurity()">Đăng xuất</button>
+        </div>
+        <div class="tabs">
+          <div id="tabScan" class="active" onclick="secTab('scan')">📷 QUÉT VÉ</div>
+          <div id="tabBoard" onclick="secTab('board')">📊 BẢNG THEO DÕI</div>
+        </div>
+
+        <div id="secScan">
+          <button class="btn btn-g" onclick="openScanner('secScanBox','secReader',onTicketScanned)">📷 BẬT MÁY QUÉT QR CỦA XE</button>
+          <label class="btn btn-y btn-sm" style="display:block;text-align:center;margin-top:6px">📸 Chụp ảnh QR của xe (dự phòng)
+            <input type="file" accept="image/*" capture="environment" style="display:none" onchange="scanFromPhoto(this,'secReader',onTicketScanned)">
+          </label>
+          <div id="secScanBox" class="scanner hidden" style="border-color:var(--r)">
+            <p style="text-align:center;font-weight:bold;color:var(--r);margin:4px">ĐƯA MÃ QR TRÊN ĐIỆN THOẠI KHÁCH VÀO KHUNG</p>
+            <div id="secReader"></div>
+            <div class="row">
+              <button class="btn btn-d" onclick="switchCamera()">🔄 ĐỔI CAMERA</button>
+              <button class="btn btn-r" onclick="closeScanner()">❌ TẮT</button>
+            </div>
+          </div>
+          <div class="row" style="margin-top:8px">
+            <input type="text" id="manualTicket" placeholder="Hoặc nhập mã vé (TK...)" style="flex:3">
+            <button class="btn btn-b btn-sm" style="flex:1" onclick="onTicketScanned(document.getElementById('manualTicket').value)">TRA</button>
+          </div>
+          <div id="ticketResult"></div>
+        </div>
+
+        <div id="secBoard" class="hidden">
+          <div class="row" style="margin-bottom:10px">
+            <select id="boardKho" onchange="loadBoard()"><option value="">Tất cả kho</option></select>
+            <button class="btn btn-b btn-sm" style="flex:0 0 auto" onclick="loadBoard()">🔄 Làm mới</button>
+          </div>
+          <div id="boardContent" class="muted">Đang tải...</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">GMS v2 · Bách Hóa Xanh</div>
+  </div>
+
+<script>
+  // ======================= TRẠNG THÁI CHUNG =======================
+  var CFG = { warehouses: [], categoriesMap: {}, rules: {} };
+  var serverMinsAtLoad = null, clientMsAtLoad = 0;
+  var scanner = null, scanTarget = null, facing = "environment";
+  var poChecked = false, allowFixed = true, currentTicketId = "";
+  var token = "", boardTimer = null;
+  var TRONG_TAI = ["1.5 Tấn","2 Tấn","2.3 Tấn","3.5 Tấn","5 Tấn","6.5 Tấn","8 Tấn","15 Tấn","Cont 20","Cont 40"];
+
+  function $(id) { return document.getElementById(id); }
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  function show(id, on) { $(id).classList.toggle("hidden", !on); }
+  function msgBox(id, text, ok) { $(id).innerHTML = text ? '<div class="' + (ok ? "ok" : "alert") + '">' + esc(text) + '</div>' : ""; }
+  function store(k, v) { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} }
+  function load(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  // Link API (web app /exec). Để trống khi trang chạy bên trong Apps Script.
+  var API_URL = "https://script.google.com/macros/s/AKfycbwZ49JENGrSbBw0o83EEsEUjdXagXxSxOVp63oqvn_rhl6vKR5oDlmp2eVu9ge4aJz8Rg/exec";
+  function run(fn, args, ok, fail) {
+    var onFail = function (e) {
+      if (fail) fail(e); else alert("Lỗi kết nối: " + (e && e.message ? e.message : e));
+    };
+    if (window.google && google.script && google.script.run) {
+      var r = google.script.run.withSuccessHandler(ok).withFailureHandler(onFail);
+      r[fn].apply(r, args || []);
+      return;
+    }
+    // Trang đặt ngoài Google (GitHub Pages): gọi qua cổng API doPost
+    fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ fn: fn, args: args || [] })
+    }).then(function (res) { return res.json(); })
+      .then(function (res) {
+        if (res && res.ok) { if (ok) ok(res.data); }
+        else onFail(new Error((res && res.error) || "Máy chủ không phản hồi"));
+      })
+      .catch(function (e) { onFail(new Error("Mất kết nối mạng hoặc máy chủ bận (" + (e && e.message ? e.message : e) + ")")); });
+  }
+
+  // Áp cấu hình kho vào giao diện (dùng cho cả cấu hình nhúng sẵn và cấu hình tải lại)
+  function applyConfig(cfg) {
+    if (!cfg || !cfg.warehouses || !cfg.warehouses.length) return false;
+    CFG = cfg;
+    $("clusterTitle").textContent = CFG.clusterName || "CỤM KHO BÁCH HÓA XANH";
+    var cur = $("khoDen").value, curB = $("boardKho").value;
+    var opts = '<option value="">-- Chọn kho --</option>', bOpts = '<option value="">Tất cả kho</option>';
+    CFG.warehouses.forEach(function (w) {
+      opts += '<option value="' + esc(w.code) + '">' + esc(w.name) + '</option>';
+      bOpts += '<option value="' + esc(w.code) + '">' + esc(w.name) + '</option>';
+    });
+    $("khoDen").innerHTML = opts; $("boardKho").innerHTML = bOpts;
+    if (cur) $("khoDen").value = cur;
+    if (curB) $("boardKho").value = curB;
+    if (!$("khoDen").value && CFG.warehouses.length === 1) $("khoDen").value = CFG.warehouses[0].code;
+    if ($("khoDen").value) onKhoChange();
+    var m = String(CFG.serverTime || "").match(/(\d{2}):(\d{2})/);
+    if (m) { serverMinsAtLoad = parseInt(m[1], 10) * 60 + parseInt(m[2], 10); clientMsAtLoad = Date.now(); }
+    return true;
+  }
+
+  // Tải lại cấu hình từ server, tự thử lại tối đa 3 lần nếu mạng chập chờn
+  function loadConfig(attempt) {
+    attempt = attempt || 1;
+    run("getPublicConfig", [], function (cfg) {
+      if (!applyConfig(cfg) && !CFG.warehouses.length) {
+        $("clusterTitle").textContent = "⚠️ CHƯA CÓ KHO TRONG SHEET CẤU HÌNH";
+      }
+    }, function () {
+      if (attempt < 3) setTimeout(function () { loadConfig(attempt + 1); }, 2000 * attempt);
+      else if (!CFG.warehouses.length) $("clusterTitle").innerHTML = '⚠️ MẠNG YẾU - <u onclick="loadConfig(1)" style="cursor:pointer">BẤM ĐỂ TẢI LẠI</u>';
+    });
+  }
+
+  function initApp() {
+    try { initTimes(); onLoaiXe(); } catch (e) {}
+    var boot = null;
+    try { boot = null; } catch (e) {}
+    applyConfig(boot);
+    loadConfig(1);
+    renderMyTickets();
+    token = load("gms_token") || "";
+    if (token) {
+      run("anNinhKiemTraPhien", [token], function (r) { if (r.success) setLoggedIn(r.name, r.role); else { token = ""; store("gms_token", null); } }, function () {});
+    }
+  }
+
+  function serverNowMins() {
+    if (serverMinsAtLoad === null) { var d = new Date(); return d.getHours() * 60 + d.getMinutes(); }
+    return (serverMinsAtLoad + Math.floor((Date.now() - clientMsAtLoad) / 60000)) % 1440;
+  }
+
+  function showPortal(p) {
+    closeScanner();
+    show("guestPortal", p === "guest"); show("myTicketPortal", p === "myTicket");
+    show("securityPortal", p === "security"); show("qrScreen", false);
+    if (p === "myTicket") renderMyTickets();
+    if (p !== "security") stopBoardTimer();
+  }
+
+  // ======================= FORM TÀI XẾ =======================
+  function fmtName(el) {
+    el.value = el.value.trim().replace(/\s+/g, " ").split(" ").map(function (w) {
+      return w ? w.charAt(0).toUpperCase() + w.slice(1).toLowerCase() : w; }).join(" ");
+  }
+  function normPlate(raw) {
+    var s = String(raw || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+    var m = s.match(/^([1-9][0-9][A-Z]{1,2})([0-9]{4,5})$/) || s.match(/^([1-9][0-9][A-Z][0-9])([0-9]{4,5})$/);
+    if (!m || /^0+$/.test(m[2]) || m[2] === "12345" || m[2] === "11111") return null;
+    return m[1] + "-" + m[2];
+  }
+  function fmtPlate(el) { var f = normPlate(el.value); if (f) el.value = f; }
+  function ttOptions(withEmpty) {
+    var h = withEmpty ? '<option value="">-- Trọng tải --</option>' : "";
+    TRONG_TAI.forEach(function (t) { h += '<option value="' + t + '">' + t + '</option>'; });
+    return h;
+  }
+  function onLoaiXe() {
+    $("trongTai").innerHTML = $("loaiXe").value === "Xe Tải" ? ttOptions(true) : '<option value="N/A">Không có</option>';
+  }
+  function timeOptions() {
+    var h = '<option value="">-- Giờ --</option>';
+    for (var i = 0; i < 24; i++) { var hh = (i < 10 ? "0" : "") + i; h += '<option>' + hh + 'h00</option><option>' + hh + 'h30</option>'; }
+    return h;
+  }
+  function initTimes() { $("gioBatDau").innerHTML = timeOptions(); $("gioKetThuc").innerHTML = timeOptions(); }
+
+  function onPhanLoai() {
+    var pl = $("phanLoai").value;
+    show("commonSec", !!pl);
+    show("partnerSec", pl === "Đối tác ngoài");
+    show("internalSec", pl === "Nội bộ BHX");
+    show("grpUserBHX", pl === "Nội bộ BHX");
+    if (pl === "Nội bộ BHX") $("btnSubmit").disabled = false; else onMucDich();
+  }
+  function onKhoChange() {
+    var kho = $("khoDen").value, sel = $("loaiHangHoa");
+    var h = '<option value="">-- Chọn ngành hàng --</option>';
+    (CFG.categoriesMap[kho] || []).forEach(function (c) { h += '<option value="' + esc(c) + '">' + esc(c) + '</option>'; });
+    if (kho) h += '<option value="Bảo trì / Bảng hiệu / Khác">Bảo trì / Bảng hiệu / Khác</option>';
+    sel.innerHTML = h;
+    resetPO();
+  }
+  function onMucDich() {
+    var md = $("mucDichNgoai").value;
+    var isPO = md === "Giao hàng (Có PO)";
+    show("poSec", isPO); show("grpTenDonVi", !!md); show("grpNganhHang", isPO);
+    var t = $("tenDonVi");
+    if (isPO) {
+      $("lblTenDonVi").innerHTML = 'Tên Nhà Cung Cấp (tự động sau khi xác thực PO): <span class="req">*</span>';
+      $("helpTenDonVi").textContent = "Hệ thống tự điền tên NCC rút gọn sau khi xác thực PO.";
+      t.readOnly = true; t.placeholder = "Tự động điền sau khi xác thực PO...";
+      onCheDoXe(); resetPO();
+    } else {
+      t.readOnly = false; t.value = "";
+      if (md === "NVC nhận hàng giao Siêu thị") {
+        $("lblTenDonVi").innerHTML = 'Tên Nhà Vận Chuyển (NVC): <span class="req">*</span>';
+        t.placeholder = "VD: Đại Minh Cát, Nhật Khanh..."; $("helpTenDonVi").textContent = "Nhập đúng tên Nhà vận chuyển.";
+      } else {
+        $("lblTenDonVi").innerHTML = 'Tên Công ty / Đơn vị: <span class="req">*</span>';
+        t.placeholder = "VD: Công ty Hưng Phát..."; $("helpTenDonVi").textContent = "Nhập tên Công ty / Đơn vị của bạn.";
+      }
+      $("btnSubmit").disabled = !md;
+    }
+  }
+  function resetPO() {
+    poChecked = false;
+    if ($("mucDichNgoai").value === "Giao hàng (Có PO)" && $("phanLoai").value === "Đối tác ngoài") $("btnSubmit").disabled = true;
+    show("bookingSec", false); msgBox("poMsg", ""); $("tenDonVi").value = "";
+    renderPOInputs();
+  }
+  function renderPOInputs() {
+    var kho = $("khoDen").value, n = parseInt($("soLuongPO").value, 10), h = "";
+    var prefix = kho ? ("00000" + kho).slice(-5) + "PO" : "Chọn kho";
+    var old = poValues();
+    for (var i = 0; i < n; i++) {
+      h += '<div class="po-group"><span class="po-prefix">' + esc(prefix) + '</span>' +
+        '<input type="text" class="po-val" inputmode="numeric" placeholder="Nhập số phía sau hoặc quét" value="' + esc(old[i] || "") + '" oninput="poChanged()"></div>';
+    }
+    $("poInputs").innerHTML = h;
+  }
+  function poValues() { return Array.prototype.map.call(document.getElementsByClassName("po-val"), function (e) { return e.value.trim(); }); }
+  function poChanged() { if (poChecked) { poChecked = false; show("bookingSec", false); $("btnSubmit").disabled = true; msgBox("poMsg", ""); } }
+  function fullPOList() {
+    var kho = $("khoDen").value, prefix = ("00000" + kho).slice(-5) + "PO";
+    return poValues().map(function (v) { v = v.toUpperCase().replace(/\s+/g, ""); return v.indexOf("PO") === -1 ? prefix + v : v; });
+  }
+
+  function onCheDoXe() {
+    var mode = $("cheDoXe").value, m = mode.match(/^NHIEU_XE_(\d)$/), n = m ? parseInt(m[1], 10) : 1, h = "";
+    $("lblHoTen").innerHTML = (n > 1 ? "Họ và Tên (Tài xế Xe 1)" : "Họ và Tên") + ': <span class="req">*</span>';
+    $("lblBienSo").innerHTML = (n > 1 ? "Biển số Xe 1 (xe hiện tại)" : "Biển số xe") + ': <span class="req">*</span>';
+    for (var k = 2; k <= n; k++) {
+      h += '<div class="subbox"><h4 style="color:#d9534f">🚛 XE THỨ ' + k + ' (CÙNG PO)</h4>' +
+        '<div class="form-group"><label>Biển số Xe ' + k + ': <span class="req">*</span></label>' +
+        '<input type="text" id="bsXe' + k + '" style="text-transform:uppercase" onblur="fmtPlate(this)" placeholder="VD: 51D-99999"></div>' +
+        '<div class="row"><div class="form-group"><label>Trọng tải:</label><select id="ttXe' + k + '">' + ttOptions(true) + '</select></div>' +
+        '<div class="form-group"><label>Giờ dự kiến đến:</label><select id="dkXe' + k + '">' + timeOptions() + '</select></div></div>' +
+        '<div class="form-group" style="margin:0"><label>Họ tên & SĐT tài xế Xe ' + k + ':</label>' +
+        '<input type="text" id="txXe' + k + '" maxlength="80" placeholder="VD: Trần Văn B - 0909123456">' +
+        '<div class="help">Xe đến trễ quá 15 phút so với giờ dự kiến sẽ bị cảnh báo.</div></div></div>';
+    }
+    $("subTrucks").innerHTML = h;
+  }
+
+  // ---------- Kiểm tra PO ----------
+  function checkPO() {
+    var kho = $("khoDen").value;
+    if (!kho) { alert("Vui lòng chọn Kho đích đến trước!"); return; }
+    var vals = poValues();
+    for (var i = 0; i < vals.length; i++) if (vals[i].length < 5) { alert("Vui lòng nhập/quét đầy đủ mã PO ở dòng " + (i + 1)); return; }
+    var mode = $("cheDoXe").value, xeSo = mode.indexOf("XE_PHU_") === 0 ? parseInt(mode.replace("XE_PHU_", ""), 10) : 0;
+    var btn = $("btnCheckPO"); btn.disabled = true; btn.textContent = "ĐANG ĐỐI CHIẾU DỮ LIỆU KHO...";
+    msgBox("poMsg", "");
+    run("lookupPO", [fullPOList(), kho, xeSo], function (res) {
+      btn.disabled = false; btn.textContent = "🔍 KIỂM TRA & XÁC THỰC PO";
+      if (!res.success) { poChecked = false; show("bookingSec", false); $("btnSubmit").disabled = true; msgBox("poMsg", res.msg); return; }
+      poChecked = true; allowFixed = res.allowFixedBooking;
+      var t = $("tenDonVi");
+      if (res.skipDsdh) { t.readOnly = false; t.placeholder = "Nhập tên ngắn gọn của NCC (VD: COCA-COLA)"; }
+      else { t.readOnly = true; t.value = res.ncc; }
+      if (res.matchedSubTruck) {
+        $("bienSoXe").value = res.matchedSubTruck.bienSo;
+        if ($("loaiXe").value === "Xe Tải") $("trongTai").value = res.matchedSubTruck.trongTai;
+      }
+      var lines = ["✅ PO hợp lệ" + (res.ncc ? " - NCC: " + res.ncc : "")];
+      (res.warnings || []).forEach(function (w) { lines.push(w); });
+      if (res.xePhuWarning) lines.push(res.xePhuWarning);
+      msgBox("poMsg", lines.join("\n"), !(res.warnings && res.warnings.length) && !res.xePhuWarning);
+      renderBooking(); show("bookingSec", true); $("btnSubmit").disabled = false;
+    }, function (e) { btn.disabled = false; btn.textContent = "🔍 KIỂM TRA & XÁC THỰC PO"; alert("Lỗi kết nối: " + e.message); });
+  }
+  function renderBooking() {
+    var kho = $("khoDen").value, h = '<option value="">-- Chọn loại Booking --</option>';
+    if (allowFixed) h += '<option value="BOOKING CỐ ĐỊNH">BOOKING CỐ ĐỊNH (STT: CD-001...)</option>';
+    h += '<option value="BOOKING TIÊU CHUẨN">BOOKING TIÊU CHUẨN (STT: TC-001...)</option>' +
+      '<option value="BOOKING XẾP TÀI">BOOKING XẾP TÀI (STT: XT-001...)</option>' +
+      '<option value="Khác">Khác - Xin xếp tài do full lịch (STT: ' + esc(kho) + '-001...)</option>';
+    $("loaiBooking").innerHTML = h;
+    $("bookingHelp").innerHTML = allowFixed ? "Chọn đúng loại Booking của đơn hàng để được cấp Số Thứ Tự." :
+      '<b style="color:var(--r)">NCC của bạn không có lịch Booking Cố Định tại kho ' + esc(kho) + '.</b>';
+    onBooking();
+  }
+  function onBooking() {
+    var v = $("loaiBooking").value;
+    show("timeSec", !!v && v !== "Khác"); msgBox("lateMsg", ""); checkLateLocal();
+  }
+  function parseHM(t) { var m = String(t || "").match(/^(\d{2})h(\d{2})$/); return m ? parseInt(m[1], 10) * 60 + parseInt(m[2], 10) : null; }
+  function lateMinutes(s, e) {
+    var a = parseHM(s), b = parseHM(e); if (a === null || b === null) return null;
+    if (b <= a) b += 1440; var n = serverNowMins(); if (n < a - 720) n += 1440; return n - b;
+  }
+  function checkLateLocal() {
+    var kho = $("khoDen").value, allow = (CFG.rules[kho] && CFG.rules[kho].lateBookingMinutes !== undefined) ? CFG.rules[kho].lateBookingMinutes : 5;
+    var d = lateMinutes($("gioBatDau").value, $("gioKetThuc").value);
+    if (d !== null && d > allow) msgBox("lateMsg", "⚠️ Bạn đang trễ " + d + " phút so với khung giờ booking. Hệ thống sẽ ghi nhận TRỄ BOOKING. Vui lòng liên hệ NCC hoặc Ngành hàng BHX hỗ trợ!");
+    else msgBox("lateMsg", "");
+  }
+
+  // ---------- Gửi đăng ký ----------
+  function submitGuest() {
+    var pl = $("phanLoai").value;
+    var name = $("hoTen").value.trim();
+    if (name.split(/\s+/).length < 2 || /\d/.test(name) || name.length < 5) { alert("⚠️ Vui lòng nhập đầy đủ Họ và Tên thật (ít nhất 2 từ, không chứa số)!"); $("hoTen").focus(); return; }
+    if (!/^0[35789]\d{8}$/.test($("soDienThoai").value.trim())) { alert("⚠️ Số điện thoại phải gồm 10 số, bắt đầu bằng 03/05/07/08/09!"); $("soDienThoai").focus(); return; }
+    if ($("loaiXe").value === "Xe Tải" && !$("trongTai").value) { alert("⚠️ Xe Tải bắt buộc chọn Trọng tải!"); return; }
+    var plate = normPlate($("bienSoXe").value);
+    if (!plate) { alert("⚠️ Biển số '" + $("bienSoXe").value + "' không đúng định dạng (VD: 51D-12345, 59X1-12345)!"); $("bienSoXe").focus(); return; }
+    $("bienSoXe").value = plate;
+
+    var f = {
+      phanLoai: pl, khoDen: $("khoDen").value, hoTen: name, soDienThoai: $("soDienThoai").value.trim(),
+      loaiXe: $("loaiXe").value, trongTai: $("trongTai").value, bienSoXe: plate
+    };
+    if (!f.khoDen) { alert("Vui lòng chọn Kho đích đến!"); return; }
+    if (pl === "Đối tác ngoài") {
+      f.mucDichNgoai = $("mucDichNgoai").value; f.tenDonVi = $("tenDonVi").value.trim();
+      if (f.mucDichNgoai === "Giao hàng (Có PO)") {
+        if (!poChecked) { alert("Vui lòng bấm KIỂM TRA & XÁC THỰC PO trước!"); return; }
+        f.poList = fullPOList(); f.loaiHangHoa = $("loaiHangHoa").value; f.loaiBooking = $("loaiBooking").value;
+        f.gioBatDau = $("gioBatDau").value; f.gioKetThuc = $("gioKetThuc").value; f.cheDoXe = $("cheDoXe").value;
+        if (!f.loaiHangHoa) { alert("Vui lòng chọn Ngành hàng!"); return; }
+        if (!f.loaiBooking) { alert("Vui lòng chọn Loại Booking ở Bước 2!"); return; }
+        if (f.loaiBooking !== "Khác" && (!f.gioBatDau || !f.gioKetThuc)) { alert("Vui lòng chọn khung giờ Booking!"); return; }
+        var m = f.cheDoXe.match(/^NHIEU_XE_(\d)$/);
+        if (m) {
+          f.xePhu = [];
+          for (var k = 2; k <= parseInt(m[1], 10); k++) {
+            var bs = normPlate($("bsXe" + k).value);
+            if (!bs) { alert("⚠️ Biển số Xe " + k + " không đúng định dạng!"); return; }
+            if (!$("ttXe" + k).value || !$("dkXe" + k).value || $("txXe" + k).value.trim().length < 5) { alert("⚠️ Vui lòng nhập đủ thông tin Xe " + k + "!"); return; }
+            f.xePhu.push({ bienSo: bs, trongTai: $("ttXe" + k).value, gioDuKien: $("dkXe" + k).value, taiXe: $("txXe" + k).value.trim() });
+          }
+        }
+      } else if (f.tenDonVi.length < 2) { alert("Vui lòng nhập tên Công ty / Đơn vị!"); return; }
+    } else {
+      f.userBHX = $("userBHX").value; f.boPhanBHX = $("boPhanBHX").value; f.chucVuBHX = $("chucVuBHX").value; f.mucDichNoiBo = $("mucDichNoiBo").value.trim();
+      if (!f.userBHX || !f.boPhanBHX || !f.chucVuBHX || f.mucDichNoiBo.length < 3) { alert("Vui lòng nhập đủ User ID, Bộ phận, Chức vụ và Mục đích!"); return; }
+    }
+    var btn = $("btnSubmit"); btn.disabled = true; btn.textContent = "ĐANG CẤP SỐ THỨ TỰ & TẠO QR...";
+    run("dangKyVaoCong", [f], function (res) {
+      if (!res.success) { alert(res.msg); btn.disabled = false; btn.textContent = "GỬI ĐĂNG KÝ & LẤY MÃ QR VÀO CỔNG"; return; }
+      saveMyTicket(res);
+      showTicket(res, f.cheDoXe);
+    }, function (e) { alert("Lỗi kết nối: " + e.message); btn.disabled = false; btn.textContent = "GỬI ĐĂNG KÝ & LẤY MÃ QR VÀO CỔNG"; });
+  }
+
+  function showTicket(res, cheDoXe) {
+    currentTicketId = res.ticketId;
+    show("guestPortal", false); show("myTicketPortal", false); show("mainMenu", false); show("qrScreen", true);
+    if (res.sttCode) { $("qrStt").innerHTML = "SỐ THỨ TỰ CỦA BẠN<span>" + esc(res.sttCode) + "</span>"; show("qrStt", true); }
+    else show("qrStt", false);
+    $("qrWarn").innerHTML = (res.warnings && res.warnings.length) ? '<div class="alert">' + esc(res.warnings.join("\n\n")) + '</div>' : "";
+    var m = String(cheDoXe || "").match(/^NHIEU_XE_(\d)$/);
+    if (m) {
+      $("qrMulti").innerHTML = "📢 1 PO ĐI " + m[1] + " XE:<br>1. Mã QR này dùng để duyệt Xe 1.<br>2. Gửi ảnh chụp mã QR này cho tài xế các xe sau để đưa An ninh quét khi đến kho. Hệ thống sẽ cấp STT mới cho từng xe.";
+      show("qrMulti", true);
+    } else show("qrMulti", false);
+    var box = $("qrBox"); box.innerHTML = "";
+    try { new QRCode(box, { text: res.ticketId, width: 230, height: 230, correctLevel: QRCode.CorrectLevel.M }); }
+    catch (e) { box.textContent = res.ticketId; }
+    $("qrInfo").innerHTML = "Mã vé: <b>" + esc(res.ticketId) + "</b><br>" + esc(res.bienSo || "") + " · Kho " + esc(res.kho || "") + " · " + esc(res.thoiGian || "");
+    $("qrStatus").innerHTML = "";
+    window.scrollTo(0, 0);
+  }
+
+  function saveMyTicket(res) {
+    var list = []; try { list = JSON.parse(load("gms_my_tickets") || "[]"); } catch (e) {}
+    list.unshift({ id: res.ticketId, stt: res.sttCode || "", bienSo: res.bienSo || "", kho: res.kho || "", t: res.thoiGian || "" });
+    store("gms_my_tickets", JSON.stringify(list.slice(0, 8)));
+  }
+  function renderMyTickets() {
+    var list = []; try { list = JSON.parse(load("gms_my_tickets") || "[]"); } catch (e) {}
+    if (!list.length) { $("myTicketList").innerHTML = "Chưa có vé nào trên máy này."; return; }
+    $("myTicketList").innerHTML = list.map(function (t, i) {
+      return '<div class="ticket-row"><div><b>' + esc(t.stt || "Không STT") + '</b> · <span class="plate">' + esc(t.bienSo) + '</span><br>' +
+        '<span class="muted">Kho ' + esc(t.kho) + ' · ' + esc(t.t) + '</span></div>' +
+        '<button class="btn btn-b btn-sm" onclick="openMyTicket(' + i + ')">MỞ VÉ</button></div>';
+    }).join("");
+  }
+  function openMyTicket(i) {
+    var list = []; try { list = JSON.parse(load("gms_my_tickets") || "[]"); } catch (e) {}
+    var t = list[i]; if (!t) return;
+    showTicket({ ticketId: t.id, sttCode: t.stt, bienSo: t.bienSo, kho: t.kho, thoiGian: t.t, warnings: [] });
+    refreshMyTicketStatus(t.id);
+  }
+  function refreshMyTicketStatus(id) {
+    if (!id) return;
+    $("qrStatus").innerHTML = '<p class="muted">Đang kiểm tra...</p>';
+    run("xemTrangThaiVe", [id], function (r) {
+      if (!r.success) { $("qrStatus").innerHTML = '<div class="alert">' + esc(r.msg) + '</div>'; return; }
+      var txt = "TRẠNG THÁI: " + r.trangThai;
+      if (r.trangThai === "ĐANG ĐỢI VÀO KHO" || r.trangThai === "CHỜ AN NINH DUYỆT") txt += "\nSố xe đang chờ phía trước: " + r.soXeChoTruoc;
+      $("qrStatus").innerHTML = '<div class="ok">' + esc(txt) + '</div>';
+    });
+  }
+
+  // ======================= MÁY QUÉT (CAMERA) =======================
+  function openScanner(boxId, readerId, cb) {
+    closeScanner(function () {
+      show(boxId, true);
+      scanTarget = { box: boxId, reader: readerId, cb: cb };
+      try {
+        scanner = new Html5Qrcode(readerId);
+        scanner.start({ facingMode: facing }, { fps: 10, qrbox: { width: 240, height: 240 } },
+          function (text) { var c = scanTarget.cb; closeScanner(); c(text); }, function () {})
+          .catch(function (err) { closeScanner(); alert(cameraErrorText(err)); });
+      } catch (e) { closeScanner(); alert(cameraErrorText(e)); }
+    });
+  }
+
+  // Giải thích đúng lý do không mở được camera + cách khắc phục
+  function cameraErrorText(err) {
+    var s = String((err && (err.name || err.message)) || err || "");
+    var ua = navigator.userAgent || "";
+    var inApp = /Zalo|FBAN|FBAV|FB_IAB|Instagram|Line\/|Messenger/i.test(ua);
+    var head = "KHÔNG MỞ ĐƯỢC CAMERA.\n\n";
+    var tail = "\n\n👉 Hoặc bấm nút vàng \"📸 Chụp ảnh ...\" để chụp mã (không cần cấp quyền).";
+    if (inApp) return head + "Bạn đang mở link trong Zalo/Facebook - ứng dụng này chặn quét trực tiếp." + tail;
+    if (/NotAllowed|Permission|denied/i.test(s)) return head + "Bạn chưa cho phép trang dùng camera.\n" +
+      "• Chrome: bấm biểu tượng bên trái thanh địa chỉ → Quyền → Máy ảnh → Cho phép → tải lại trang.\n" +
+      "• iPhone: Cài đặt → Safari → Camera → Cho phép." + tail;
+    if (/NotFound|Overconstrained/i.test(s)) return head + "Không tìm thấy camera phù hợp. Bấm \"🔄 ĐỔI CAMERA\" hoặc dùng nút chụp ảnh." + tail;
+    if (/NotReadable|TrackStart|in use/i.test(s)) return head + "Camera đang bị ứng dụng khác dùng (Zalo, máy ảnh...). Tắt ứng dụng đó rồi thử lại." + tail;
+    if (typeof Html5Qrcode === "undefined") return head + "Thư viện quét mã chưa tải xong (mạng yếu). Đợi vài giây rồi bấm lại." + tail;
+    return head + "Lỗi: " + s + "\nThử mở link bằng Chrome (Android) hoặc Safari (iPhone)." + tail;
+  }
+
+  // Quét mã từ ẢNH CHỤP (dự phòng khi camera trực tiếp bị chặn)
+  function scanFromPhoto(input, readerId, cb) {
+    var file = input.files && input.files[0];
+    input.value = "";
+    if (!file) return;
+    if (typeof Html5Qrcode === "undefined") { alert("Thư viện quét mã chưa tải xong (mạng yếu). Đợi vài giây rồi thử lại."); return; }
+    closeScanner(function () {
+      var reader = new Html5Qrcode(readerId);
+      reader.scanFile(file, false)
+        .then(function (text) { try { reader.clear(); } catch (e) {} cb(text); })
+        .catch(function () {
+          try { reader.clear(); } catch (e) {}
+          alert("Không đọc được mã trong ảnh.\n• Chụp gần hơn, đủ sáng, mã nằm thẳng và rõ nét.\n• Hoặc nhập tay mã vào ô.");
+        });
+    });
+  }
+  function closeScanner(after) {
+    var box = scanTarget ? scanTarget.box : null;
+    var done = function () { if (box) show(box, false); if (typeof after === "function") after(); };
+    if (scanner) {
+      var s = scanner; scanner = null;
+      try { s.stop().then(function () { try { s.clear(); } catch (e) {} done(); }).catch(function () { try { s.clear(); } catch (e) {} done(); }); }
+      catch (e) { try { s.clear(); } catch (e2) {} done(); } // máy quét chưa chạy (vd. bị chặn quyền) -> stop() ném lỗi ngay
+    } else done();
+  }
+  function switchCamera() {
+    if (!scanTarget) return;
+    facing = facing === "environment" ? "user" : "environment";
+    openScanner(scanTarget.box, scanTarget.reader, scanTarget.cb);
+  }
+  function onPoScanned(text) {
+    var s = String(text || "").toUpperCase().replace(/\s+/g, "");
+    var m = s.match(/\d{3,6}PO(\d{5,})/), code = m ? m[1] : s.replace(/^.*PO/, "");
+    var inputs = document.getElementsByClassName("po-val");
+    for (var i = 0; i < inputs.length; i++) {
+      if (inputs[i].value === code) { alert("⚠️ Mã PO này đã quét rồi!"); return; }
+      if (!inputs[i].value) { inputs[i].value = code; poChanged(); return; }
+    }
+    alert("Đã điền đủ số lượng mã PO. Tăng 'Số lượng mã PO' nếu cần thêm.");
+  }
+
+  // ======================= AN NINH =======================
+  function loginSecurity() {
+    var u = $("secUser").value.trim(), p = $("secPass").value;
+    if (!u || !p) { msgBox("loginMsg", "Vui lòng nhập đủ User và Mật khẩu!"); return; }
+    $("btnLogin").disabled = true; msgBox("loginMsg", "");
+    run("anNinhDangNhap", [u, p], function (r) {
+      $("btnLogin").disabled = false; $("secPass").value = "";
+      if (!r.success) { msgBox("loginMsg", r.msg); return; }
+      token = r.token; store("gms_token", token); setLoggedIn(r.name, r.role);
+    }, function (e) { $("btnLogin").disabled = false; msgBox("loginMsg", "Lỗi kết nối: " + e.message); });
+  }
+  function setLoggedIn(name, role) {
+    show("secLogin", false); show("secMain", true);
+    $("secName").textContent = "Đang trực: " + name + " (" + role + ")";
+  }
+  function logoutSecurity() {
+    run("anNinhDangXuat", [token], function () {}, function () {});
+    token = ""; store("gms_token", null); closeScanner(); stopBoardTimer();
+    show("secMain", false); show("secLogin", true); $("ticketResult").innerHTML = "";
+  }
+  function handleAuthError(msg) {
+    if (/hết hạn|gỡ quyền/i.test(msg || "")) { alert(msg); logoutSecurity(); return true; }
+    return false;
+  }
+  function secTab(t) {
+    $("tabScan").classList.toggle("active", t === "scan"); $("tabBoard").classList.toggle("active", t === "board");
+    show("secScan", t === "scan"); show("secBoard", t === "board");
+    if (t === "board") { closeScanner(); loadBoard(); stopBoardTimer(); boardTimer = setInterval(loadBoard, 60000); }
+    else stopBoardTimer();
+  }
+  function stopBoardTimer() { if (boardTimer) { clearInterval(boardTimer); boardTimer = null; } }
+
+  function onTicketScanned(text) {
+    var id = String(text || "").trim();
+    if (!/^TK\d+(_XE\d)?$/.test(id)) { alert("Mã không phải vé GMS: " + id); return; }
+    $("ticketResult").innerHTML = '<p class="muted">Đang tra cứu vé...</p>';
+    run("anNinhLayThongTinVe", [token, id], function (r) {
+      if (!r.success) { if (!handleAuthError(r.msg)) $("ticketResult").innerHTML = '<div class="alert">' + esc(r.msg) + '</div>'; return; }
+      renderTicketInfo(r.info);
+    });
+  }
+  function statusBadge(i) {
+    if (i.trangThai === "Chờ duyệt") return '<span class="badge b-pend">CHỜ DUYỆT</span>';
+    if (i.tinhTrang === "ĐANG ĐỢI VÀO") return '<span class="badge b-wait">ĐANG ĐỢI VÀO</span>';
+    if (i.tinhTrang === "ĐÃ VÀO") return '<span class="badge b-in">ĐÃ VÀO KHO</span>';
+    if (i.tinhTrang === "ĐÃ RA") return '<span class="badge b-out">ĐÃ RA CỔNG</span>';
+    return esc(i.trangThai);
+  }
+  function renderTicketInfo(i) {
+    var h = "";
+    (i.alerts || []).forEach(function (a) { h += '<div class="alert">' + esc(a) + '</div>'; });
+    if (i.stt) h += '<div class="stt" style="font-size:16px">SỐ THỨ TỰ<span style="font-size:28px">' + esc(i.stt) + '</span></div>';
+    h += '<table class="info-table">' +
+      '<tr><td>Trạng thái</td><td>' + statusBadge(i) + '</td></tr>' +
+      '<tr><td>Biển số</td><td><span class="plate">' + esc(i.bienSo) + '</span> (' + esc(i.trongTai) + ')</td></tr>' +
+      '<tr><td>Tài xế</td><td>' + esc(i.hoTen) + ' · ' + esc(i.sdt) + '</td></tr>' +
+      '<tr><td>NCC / Đơn vị</td><td><b style="color:var(--g)">' + esc(i.ncc) + '</b></td></tr>' +
+      '<tr><td>PO</td><td>' + esc(i.maPO || "-") + '</td></tr>' +
+      '<tr><td>Mục đích</td><td>' + esc(i.mucDich) + '</td></tr>' +
+      '<tr><td>Booking</td><td><b style="color:var(--r)">' + esc(i.hinhThuc || "-") + '</b></td></tr>' +
+      '<tr><td>Ngành hàng</td><td>' + esc(i.nganhHang || "-") + '</td></tr>' +
+      '<tr><td>Kho</td><td>' + esc(i.kho) + '</td></tr>' +
+      '<tr><td>Đăng ký lúc</td><td>' + esc(i.thoiGian) + '</td></tr>' +
+      (i.tgDuyet ? '<tr><td>Duyệt cổng</td><td>' + esc(i.tgDuyet) + '</td></tr>' : "") +
+      (i.tgVaoKho ? '<tr><td>Vào kho</td><td>' + esc(i.tgVaoKho) + '</td></tr>' : "") +
+      (i.tgRa ? '<tr><td>Ra cổng</td><td>' + esc(i.tgRa) + '</td></tr>' : "") +
+      '</table>';
+    var a = i.actions || [];
+    if (a.indexOf("DUYET") !== -1) h += btnAct(i.ticketId, "DUYET", "✅ DUYỆT VÀO CỔNG", "btn-g");
+    if (a.indexOf("CHO_VAO") !== -1) h += btnAct(i.ticketId, "CHO_VAO", "🚚 CHO XE VÀO KHO", "btn-b");
+    if (a.indexOf("CHO_RA") !== -1) h += btnAct(i.ticketId, "CHO_RA", "🚪 XÁC NHẬN XE RA CỔNG", "btn-o");
+    if (a.indexOf("DUYET_XE_PHU") !== -1) {
+      var opts = (i.pendingSubTrucks || []).map(function (s) {
+        return '<option value="' + esc(s.xeSo) + '">Xe ' + esc(s.xeSo) + ': ' + esc(s.bienSo) + ' (' + esc(s.trongTai) + ' - DK ' + esc(s.gioDuKien) + ')</option>';
+      }).join("");
+      h += '<div class="subbox"><label>🚛 Xe tiếp theo của PO vừa đến cổng:</label><select id="selSub">' + opts + '</select>' +
+        '<button class="btn btn-g" onclick="doAction(\'' + esc(i.ticketId) + '\',\'DUYET_XE_PHU\', document.getElementById(\'selSub\').value)">✅ DUYỆT XE NÀY & CẤP STT</button></div>';
+    }
+    if (!a.length) h += '<div class="ok">Vé này đã hoàn tất (xe đã ra cổng).</div>';
+    $("ticketResult").innerHTML = '<div class="card" style="margin-top:12px;border:2px dashed var(--r)">' + h + '</div>';
+  }
+  function btnAct(id, action, label, cls) {
+    return '<button class="btn ' + cls + '" onclick="doAction(\'' + esc(id) + '\',\'' + action + '\')">' + label + '</button>';
+  }
+  function doAction(id, action, sub) {
+    var btns = document.querySelectorAll("#ticketResult button, #boardContent button");
+    Array.prototype.forEach.call(btns, function (b) { b.disabled = true; });
+    run("anNinhXuLy", [token, id, action, sub || ""], function (r) {
+      Array.prototype.forEach.call(btns, function (b) { b.disabled = false; });
+      if (!r.success && handleAuthError(r.msg)) return;
+      alert(r.msg);
+      if (r.success) {
+        if (!$("secBoard").classList.contains("hidden")) loadBoard();
+        else onTicketScanned(id);
+      }
+    });
+  }
+
+  // ======================= BẢNG THEO DÕI =======================
+  function loadBoard() {
+    run("layBangTheoDoi", [token, $("boardKho").value], function (r) {
+      if (!r.success) { if (!handleAuthError(r.msg)) $("boardContent").innerHTML = '<div class="alert">' + esc(r.msg) + '</div>'; return; }
+      var t = r.thongKe, h = '<p class="muted" style="margin:0 0 8px">Ngày ' + esc(r.ngay) + ' · cập nhật ' + esc(r.gio) + ' (tự làm mới mỗi phút)</p>';
+      h += '<div class="stats">' +
+        stat(t.tong, "TỔNG LƯỢT", "#333") + stat(t.choDuyet, "CHỜ DUYỆT", "#e69138") + stat(t.dangDoi, "ĐANG ĐỢI VÀO", "#3d85c6") +
+        stat(t.trongKho, "ĐANG TRONG KHO", "#cc4125") + stat(t.daRa, "ĐÃ RA", "#777") + stat(t.treBooking, "TRỄ BOOKING", "#cc0000") +
+        stat(t.tbCho + "'", "TB PHÚT CHỜ", "#3d85c6") + stat(t.tbTrongKho + "'", "TB PHÚT TRONG KHO", "#cc4125") + stat(t.noiBo, "NỘI BỘ", "#008b4b") +
+        '</div>';
+      h += section("🕒 HÀNG CHỜ VÀO KHO (" + r.hangCho.length + ")", r.hangCho, function (x) {
+        return itemRow(x, "Duyệt " + esc(x.tgDuyet) + " · chờ <b" + (x.phut > 60 ? ' class="long"' : "") + ">" + esc(x.phut) + " phút</b>",
+          btnSmall(x.ticketId, "CHO_VAO", "CHO VÀO", "btn-b"));
+      });
+      h += section("🏭 ĐANG TRONG KHO (" + r.trongKho.length + ")", r.trongKho, function (x) {
+        return itemRow(x, "Vào " + esc(x.tgVao) + " · <b" + (x.phut > 120 ? ' class="long"' : "") + ">" + esc(x.phut) + " phút</b>",
+          btnSmall(x.ticketId, "CHO_RA", "CHO RA", "btn-o"));
+      });
+      h += section("📝 CHỜ AN NINH DUYỆT (" + r.choDuyet.length + ")", r.choDuyet, function (x) {
+        return itemRow(x, "Đăng ký " + esc(x.tgDK), '<span class="muted">Quét QR để duyệt</span>');
+      });
+      $("boardContent").innerHTML = h;
+    }, function (e) { $("boardContent").innerHTML = '<div class="alert">Lỗi kết nối: ' + esc(e.message) + '</div>'; });
+  }
+  function stat(v, label, color) { return '<div class="stat"><b style="color:' + color + '">' + esc(v) + '</b><small>' + label + '</small></div>'; }
+  function section(title, arr, fn) {
+    return '<div class="card" style="padding:12px"><h4 style="margin-top:0">' + esc(title) + '</h4>' +
+      (arr.length ? arr.map(fn).join("") : '<p class="muted">Không có xe.</p>') + '</div>';
+  }
+  function itemRow(x, metaHtml, actionHtml) {
+    return '<div class="list-item"><div><b>' + esc(x.stt || "-") + '</b> <span class="plate">' + esc(x.bienSo) + '</span> ' + esc(x.trongTai) +
+      '<br><span class="meta">' + esc(x.ncc) + ' · Kho ' + esc(x.kho) + '<br>' + metaHtml + '</span>' +
+      (x.canhBao ? '<br><span class="long" style="font-size:11px">' + esc(x.canhBao) + '</span>' : "") + '</div><div>' + actionHtml + '</div></div>';
+  }
+  function btnSmall(id, action, label, cls) {
+    return '<button class="btn btn-sm ' + cls + '" onclick="doAction(\'' + esc(id) + '\',\'' + action + '\')">' + label + '</button>';
+  }
+
+  // Khởi động ngay khi HTML đã dựng xong, KHÔNG chờ thư viện QR bên ngoài tải xong
+  initApp();
+</script>
+</body>
+</html>

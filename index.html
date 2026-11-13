@@ -94,6 +94,7 @@
           <div class="form-group">
             <label>Kho đích đến: <span class="req">*</span></label>
             <select id="khoDen" onchange="onKhoChange()"><option value="">-- Chọn kho --</option></select>
+            <div id="khoRuleMsg"></div>
           </div>
 
           <div class="form-group hidden" id="grpUserBHX">
@@ -119,9 +120,10 @@
             </div>
             <div class="form-group">
               <label id="lblTrongTai">Trọng tải: <span class="req">*</span></label>
-              <select id="trongTai"></select>
+              <select id="trongTai" onchange="checkBigTruck()"></select>
             </div>
           </div>
+          <div id="bigTruckMsg"></div>
           <div class="form-group">
             <label id="lblBienSo">Biển số xe: <span class="req">*</span></label>
             <input type="text" id="bienSoXe" placeholder="VD: 51D-12345" style="text-transform:uppercase" onblur="fmtPlate(this)">
@@ -443,6 +445,7 @@
   }
   function onLoaiXe() {
     $("trongTai").innerHTML = $("loaiXe").value === "Xe Tải" ? ttOptions(true) : '<option value="N/A">Không có</option>';
+    if (typeof checkBigTruck === "function" && $("bigTruckMsg")) checkBigTruck();
   }
   function timeOptions() {
     var h = '<option value="">-- Giờ --</option>';
@@ -466,6 +469,29 @@
     if (kho) h += '<option value="Bảo trì / Bảng hiệu / Khác">Bảo trì / Bảng hiệu / Khác</option>';
     sel.innerHTML = h;
     resetPO();
+    showKhoRules();
+  }
+
+  // ---------- Quy tắc theo kho: giờ chốt, bắt buộc booking, xe lớn ----------
+  function hm(mins) { mins = ((mins % 1440) + 1440) % 1440; var h = Math.floor(mins / 60), m = mins % 60; return (h < 10 ? "0" : "") + h + "h" + (m < 10 ? "0" : "") + m; }
+  function showKhoRules() {
+    var kho = $("khoDen").value, r = CFG.rules[kho] || {}, lines = [], bad = false;
+    if (kho && r.cutoffMins != null) {
+      if (serverNowMins() >= r.cutoffMins) { bad = true; lines.push("⛔ Kho " + kho + " chỉ nhận đăng ký GIAO HÀNG trước " + hm(r.cutoffMins) + ". Hôm nay đã quá giờ chốt."); }
+      else lines.push("🕔 Kho " + kho + " nhận đăng ký giao hàng đến " + hm(r.cutoffMins) + " hằng ngày.");
+    }
+    if (kho && r.requireBooking) lines.push("📅 Giao hàng bắt buộc có BOOKING đúng ngày hôm nay.");
+    $("khoRuleMsg").innerHTML = lines.length ? '<div class="' + (bad ? "alert" : "help") + '" style="white-space:pre-line;margin-top:6px">' + esc(lines.join("\n")) + '</div>' : "";
+    checkBigTruck();
+  }
+  function tanOf(v) { v = String(v || "").toUpperCase(); if (v.indexOf("CONT") !== -1) return 99; var m = v.replace(",", ".").match(/(\d+(\.\d+)?)/); return m ? parseFloat(m[1]) : 0; }
+  function checkBigTruck() {
+    var kho = $("khoDen").value, r = CFG.rules[kho] || {}, box = $("bigTruckMsg");
+    if (!box) return;
+    if (kho && r.bigTruckFrom != null && $("loaiXe").value === "Xe Tải" && tanOf($("trongTai").value) > (r.bigTruckTon || 8) && serverNowMins() >= r.bigTruckFrom) {
+      box.innerHTML = '<div class="alert" style="margin-top:6px">⚠️ Xe trên ' + esc(r.bigTruckTon) + ' tấn đến sau ' + hm(r.bigTruckFrom) +
+        ': KHÔNG ĐỦ THỜI GIAN XUỐNG HÀNG. Vui lòng báo bộ phận Nhập hàng để sắp xếp thời gian nhập. (Vẫn được đăng ký)</div>';
+    } else box.innerHTML = "";
   }
   function onMucDich() {
     var md = $("mucDichNgoai").value;
